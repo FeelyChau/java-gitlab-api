@@ -15,12 +15,9 @@ import java.io.UnsupportedEncodingException;
 import java.net.Proxy;
 import java.net.URL;
 import java.net.URLEncoder;
+import java.text.DateFormat;
 import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.Date;
-import java.util.List;
-import java.util.Collection;
+import java.util.*;
 
 import static org.gitlab.api.http.Method.*;
 
@@ -2043,6 +2040,37 @@ public class GitlabAPI {
         return retrieve().getAll(tailUrl, GitlabCommit[].class);
     }
 
+    public List<GitlabCommit> getAllCommits(Serializable projectId, Pagination pagination,
+                                            String branchOrTag, Date since, Date until) throws IOException {
+        final Query query = new Query();
+        if (branchOrTag != null) {
+            query.append("ref_name", branchOrTag);
+        }
+
+        if (since != null) {
+            TimeZone tz = TimeZone.getTimeZone("UTC");
+            DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+            df.setTimeZone(tz);
+            query.append("since", df.format(since));
+        }
+
+        if (until != null) {
+            TimeZone tz = TimeZone.getTimeZone("UTC");
+            DateFormat df = new SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss.SSS'Z'");
+            df.setTimeZone(tz);
+            query.append("until", df.format(until));
+        }
+
+        if (pagination != null) {
+            query.mergeWith(pagination.asQuery());
+        }
+
+        String tailUrl = GitlabProject.URL + "/" + sanitizeProjectId(projectId) +
+                "/repository" + GitlabCommit.URL + query;
+        System.out.println(tailUrl);
+        return retrieve().getAll(tailUrl, GitlabCommit[].class);
+    }
+
     // List commit diffs for a project ID and commit hash
     // GET /projects/:id/repository/commits/:sha/diff
     public List<GitlabCommitDiff> getCommitDiffs(Serializable projectId, String commitHash) throws IOException {
@@ -2697,7 +2725,6 @@ public class GitlabAPI {
                 + "/" + badgeId;
         return retrieve().to(tailUrl, GitlabBadge.class);
     }
-
     /**
      * Add group badge
      *
